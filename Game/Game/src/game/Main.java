@@ -6,27 +6,17 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // 1. Check Input Arguments
-        if (args.length < 2) {
+        // 1. Check Input Arguments (Updated for Single Sequential Mode)
+        if (args.length < 1) {
             System.out.println("Error: Missing arguments.");
-            System.out.println("Usage: java -jar SudokuVerifier.jar <csv-path> <mode>");
+            System.out.println("Usage: java -jar SudokuVerifier.jar <csv-path>");
             System.exit(1);
         }
 
         String filePath = args[0];
-        int mode = 0;
+        // int mode = 0; // Mode variable is no longer needed
 
-        // 2. Validate Mode
-        try {
-            mode = Integer.parseInt(args[1]);
-            if (mode != 0 && mode != 3 && mode != 27) {
-                System.out.println("Error: Mode must be 0, 3, or 27.");
-                System.exit(1);
-            }
-        } catch (NumberFormatException e) {
-            System.out.println("Error: Mode must be a number (0, 3, 27).");
-            System.exit(1);
-        }
+        // 2. Removed: Mode validation logic
 
         // 3. Validate File
         File f = new File(filePath);
@@ -37,7 +27,7 @@ public class Main {
 
         System.out.println("Running Sudoku Verifier...");
         System.out.println("File: " + filePath);
-        System.out.println("Mode: " + mode);
+        System.out.println("Mode: Sequential (Fixed)"); // Mode is now fixed
         System.out.println("-----------------------------------");
 
         // 4. Start Timer (Required for Report)
@@ -46,19 +36,19 @@ public class Main {
         // 5. Run Logic
         SudokuBoard board = new SudokuBoard(filePath);
         SudokuVerifier verifier = new SudokuVerifier(board);
-        ValidationResult result = verifier.verify(mode);
+        // Updated: Removed the 'mode' argument
+        ValidationResult result = verifier.verify();
 
         // 6. Stop Timer
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 
-        // 7. Print Validation Report (Valid/Invalid + Locations)
-        // Make sure this matches the method name in your ValidationResult class
+        // 7. Print Validation Report (Valid/Invalid/Incomplete + Locations)
         result.printDuplicates();
 
         // 8. Print Execution Stats (Required for Comparison)
         System.out.println("\n[Execution Stats]");
-        System.out.println("Mode: " + mode);
+        System.out.println("Mode: Sequential (Fixed)");
         System.out.println("Time: " + duration + " ms");
     }
 }
