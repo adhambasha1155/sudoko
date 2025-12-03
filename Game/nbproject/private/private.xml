@@ -9,6 +9,11 @@
             <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/SudokuBoard.java</file>
             <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/Main.java</file>
             <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/SudokuVerifier.java</file>
+            <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/ValidationResult.java</file>
+            <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/BaseChecker.java</file>
+            <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/DifficutyConstants.java</file>
+            <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/NotFoundExeption.java</file>
+            <file>file:/C:/Users/Dell/Documents/NetBeansProjects/Game/Game/src/game/InvalidGameException.java</file>
         </group>
     </open-files>
 </project-private>
