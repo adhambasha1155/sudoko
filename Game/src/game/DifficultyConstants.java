@@ -4,10 +4,10 @@ package game;
  * Defines the four standard constant string values for the Sudoku game difficulty levels.
  * This approach uses public static final String fields to define the constants.
  */
-public final class DifficutyConstants {
+public final class DifficultyConstants {
 
     // Prevent instantiation of this utility class
-    private DifficutyConstants() {} 
+    private DifficultyConstants() {} 
 
     public static final String EASY = "EASY";
     public static final String MEDIUM = "MEDIUM";

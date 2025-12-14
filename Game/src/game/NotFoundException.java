@@ -7,13 +7,13 @@ package game;
  * * This file resolves the compilation error in the Viewable interface method:
  * int[][] getGame(String level) throws NotFoundException;
  */
-public class NotFoundExeption extends Exception {
+public class NotFoundException extends Exception {
 
     /**
      * Constructs a NotFoundException with a detailed message.
      * @param message The detail message (e.g., "Game of difficulty 'HARD' not found.").
      */
-    public NotFoundExeption(String message) {
+    public NotFoundException(String message) {
         super(message);
     }
 }

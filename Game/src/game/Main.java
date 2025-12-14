@@ -6,7 +6,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // 1. Check Input Arguments (Updated for Single Sequential Mode)
+        // 1. Check Input Arguments
         if (args.length < 1) {
             System.out.println("Error: Missing arguments.");
             System.out.println("Usage: java -jar SudokuVerifier.jar <csv-path>");
@@ -14,11 +14,8 @@ public class Main {
         }
 
         String filePath = args[0];
-        // int mode = 0; // Mode variable is no longer needed
 
-        // 2. Removed: Mode validation logic
-
-        // 3. Validate File
+        // 2. Validate File Path existence (Optional here, but good for fast feedback)
         File f = new File(filePath);
         if (!f.exists() || f.isDirectory()) {
             System.out.println("Error: File not found at " + filePath);
@@ -27,28 +24,39 @@ public class Main {
 
         System.out.println("Running Sudoku Verifier...");
         System.out.println("File: " + filePath);
-        System.out.println("Mode: Sequential (Fixed)"); // Mode is now fixed
+        System.out.println("Mode: Sequential (Fixed)");
         System.out.println("-----------------------------------");
 
-        // 4. Start Timer (Required for Report)
         long startTime = System.currentTimeMillis();
 
-        // 5. Run Logic
-        SudokuBoard board = new SudokuBoard(filePath);
-        SudokuVerifier verifier = new SudokuVerifier(board);
-        // Updated: Removed the 'mode' argument
-        ValidationResult result = verifier.verify();
+        // 3. Run Logic INSIDE a try-catch block
+        try {
+            SudokuBoard board = new SudokuBoard(filePath);
+            SudokuVerifier verifier = new SudokuVerifier(board);
+            ValidationResult result = verifier.verify();
 
-        // 6. Stop Timer
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
 
-        // 7. Print Validation Report (Valid/Invalid/Incomplete + Locations)
-        result.printDuplicates();
+            result.printDuplicates();
 
-        // 8. Print Execution Stats (Required for Comparison)
-        System.out.println("\n[Execution Stats]");
-        System.out.println("Mode: Sequential (Fixed)");
-        System.out.println("Time: " + duration + " ms");
+            System.out.println("\n[Execution Stats]");
+            System.out.println("Mode: Sequential (Fixed)");
+            System.out.println("Time: " + duration + " ms");
+
+        } catch (NotFoundException e) {
+            // Handle the missing file gracefully
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
+        } catch (InvalidGameException e) {
+            // Handle the corrupted CSV gracefully
+            System.err.println("Game Error: " + e.getMessage());
+            System.exit(1);
+        } catch (Exception e) {
+            // Catch any other unexpected errors
+            System.err.println("An unexpected error occurred.");
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 }

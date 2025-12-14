@@ -13,12 +13,13 @@ public class SudokuBoard {
 
     // 2. The Constructor.
     // When you create 'new SudokuBoard("data.csv")', it immediately loads the data.
-    public SudokuBoard(String filePath) {
+    public SudokuBoard(String filePath) throws NotFoundException, InvalidGameException{
         loadFromCSV(filePath);
     }
 
     // 3. The Logic to read the file with validations.
-    private void loadFromCSV(String filePath) {
+    private void loadFromCSV(String filePath)  throws NotFoundException, InvalidGameException {
+        
         try (Scanner scanner = new Scanner(new File(filePath))) {
 
             // Fill 9 rows (index 0 to 8)
@@ -26,8 +27,7 @@ public class SudokuBoard {
                 
                 // Check if the file actually has a line to read.
                 if (!scanner.hasNextLine()) {
-                    System.out.println("Warning: Missing row " + (row + 1));
-                    break; // stop reading further rows
+                   throw new InvalidGameException("CSV is missing row " + (row + 1));
                 }
 
                 // Read the whole line. Ex: "5,3,4,6,7,8,9,1,2"
@@ -71,8 +71,7 @@ public class SudokuBoard {
 
         } catch (FileNotFoundException e) {
             // If the file isn't found, print a helpful message and stop the program
-            System.err.println("Error: The file " + filePath + " was not found.");
-            System.exit(1); // exit with error code 1
+           throw new NotFoundException("File not found: " + filePath);
         }
     }
 

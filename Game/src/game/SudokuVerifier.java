@@ -8,11 +8,6 @@ public class SudokuVerifier {
         this.board = board;
     }
 
-    /**
-     * Verifies the Sudoku board using the single sequential mode.
-     * The method no longer accepts a 'mode' parameter.
-     * @return The ValidationResult containing status and any duplicates found.
-     */
     public ValidationResult verify() {
         // ValidationResult now takes the board to check for 0s (INCOMPLETE).
         ValidationResult result = new ValidationResult(board);
