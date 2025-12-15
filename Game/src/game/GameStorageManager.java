@@ -46,18 +46,13 @@ public class GameStorageManager {
         }
     }
 
-    /**
-     * Helper to create a single directory for a given difficulty level.
-     */
+ 
     private void createDirectory(String difficulty) throws IOException {
         Path dirPath = basePath.resolve(difficulty.toLowerCase());
         Files.createDirectories(dirPath);
     }
     
-    /**
-     * Gets the full file path for a given difficulty level.
-     * Example: SudokuGames/hard/board.csv
-     */
+  // hfhmha ba3deen
     private String getFilePath(String difficulty) {
         return basePath
             .resolve(difficulty.toLowerCase())
@@ -65,12 +60,7 @@ public class GameStorageManager {
             .toString();
     }
     
-    /**
-     * Saves the current state of a SudokuBoard to a file, associated with a difficulty level.
-     * @param board The board to save.
-     * @param difficulty The difficulty level (EASY, MEDIUM, HARD, CURRENT).
-     * @throws InvalidGameException If there's an issue writing the file.
-     */
+   
     public void saveBoard(SudokuBoard board, String difficulty) throws InvalidGameException {
         String filePath = getFilePath(difficulty);
         Path savePath = Path.of(filePath);
@@ -98,13 +88,6 @@ public class GameStorageManager {
         }
     }
     
-    /**
-     * Loads a saved SudokuBoard from a file associated with a difficulty level.
-     * @param difficulty The difficulty level (EASY, MEDIUM, HARD, CURRENT).
-     * @return A new SudokuBoard loaded from the file.
-     * @throws NotFoundException If the file is missing.
-     * @throws InvalidGameException If the file exists but is corrupted/malformed.
-     */
     public SudokuBoard loadBoard(String difficulty) throws NotFoundException, InvalidGameException {
         // We rely on the SudokuBoard constructor to handle the actual file reading 
         // and throw the appropriate exceptions (FileNotFound/NotFound, parsing errors/InvalidGame)
@@ -113,4 +96,15 @@ public class GameStorageManager {
         // Ensure the SudokuBoard constructor has been updated to throw exceptions!
         return new SudokuBoard(filePath);
     }
+    public GameCatalog getGameCatalog() {
+    // Helper to check if the board.csv file exists in the specified difficulty folder
+    // Note: This relies on the file naming convention defined in GameStorageManager.
+    
+    boolean easy = Files.exists(Path.of(getFilePath(DifficultyConstants.EASY)));
+    boolean medium = Files.exists(Path.of(getFilePath(DifficultyConstants.MEDIUM)));
+    boolean hard = Files.exists(Path.of(getFilePath(DifficultyConstants.HARD)));
+    boolean current = Files.exists(Path.of(getFilePath(DifficultyConstants.CURRENT)));
+    
+    return new GameCatalog(easy, medium, hard, current);
+}
 }

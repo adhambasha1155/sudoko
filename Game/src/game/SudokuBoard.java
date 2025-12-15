@@ -13,21 +13,21 @@ public class SudokuBoard {
 
     // 2. The Constructor.
     // When you create 'new SudokuBoard("data.csv")', it immediately loads the data.
-    public SudokuBoard(String filePath) throws NotFoundException, InvalidGameException{
+    public SudokuBoard(String filePath) throws NotFoundException, InvalidGameException {
         loadFromCSV(filePath);
     }
 
     // 3. The Logic to read the file with validations.
-    private void loadFromCSV(String filePath)  throws NotFoundException, InvalidGameException {
-        
+    private void loadFromCSV(String filePath) throws NotFoundException, InvalidGameException {
+
         try (Scanner scanner = new Scanner(new File(filePath))) {
 
             // Fill 9 rows (index 0 to 8)
             for (int row = 0; row < 9; row++) {
-                
+
                 // Check if the file actually has a line to read.
                 if (!scanner.hasNextLine()) {
-                   throw new InvalidGameException("CSV is missing row " + (row + 1));
+                    throw new InvalidGameException("CSV is missing row " + (row + 1));
                 }
 
                 // Read the whole line. Ex: "5,3,4,6,7,8,9,1,2"
@@ -38,7 +38,7 @@ public class SudokuBoard {
 
                 // Loop through the 9 numbers in this row
                 for (int col = 0; col < 9; col++) {
-                    
+
                     // If the column is missing in the CSV, set default invalid value
                     if (col >= numbers.length) {
                         System.out.println("Warning: Missing column " + (col + 1) + " at row " + (row + 1));
@@ -71,18 +71,19 @@ public class SudokuBoard {
 
         } catch (FileNotFoundException e) {
             // If the file isn't found, print a helpful message and stop the program
-           throw new NotFoundException("File not found: " + filePath);
+            throw new NotFoundException("File not found: " + filePath);
         }
     }
 
-    // 4. The Getter.
-    // The grid is private (Encapsulation). This method allows other classes 
-    // (like the Checkers) to ask "What number is at Row 0, Column 5?"
     public int getCell(int row, int col) {
         return grid[row][col];
     }
 
-    // 5. A Helper to get the whole size (Good practice, though we know it's 9)
-    //public int getSize() {
-       // return 9;
+    public void setCell(int row, int col, int value) {
+        // Basic validation is good, but assume the Generator is responsible for 1-9
+        if (row >= 0 && row < 9 && col >= 0 && col < 9) {
+            grid[row][col] = value;
+        }
     }
+
+}
