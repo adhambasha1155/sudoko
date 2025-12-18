@@ -13,9 +13,21 @@ public class SudokuBoard {
 
     // 2. The Constructor.
     // When you create 'new SudokuBoard("data.csv")', it immediately loads the data.
+    public SudokuBoard(int size) {
+        // Since 'grid' is already initialized to 9x9 above, 
+        // this constructor just allows the Generator to start with an empty board.
+    }
     public SudokuBoard(String filePath) throws NotFoundException, InvalidGameException {
         loadFromCSV(filePath);
     }
+    public SudokuBoard(SudokuBoard existingBoard) {
+    // The generator needs a full copy of the solved board, not just a reference.
+    for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+            this.grid[r][c] = existingBoard.getCell(r, c);
+        }
+    }
+}
 
     // 3. The Logic to read the file with validations.
     private void loadFromCSV(String filePath) throws NotFoundException, InvalidGameException {

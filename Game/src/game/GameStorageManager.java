@@ -8,15 +8,13 @@ import java.nio.file.Path;
 
 /**
  * Handles all file system operations for saving and loading Sudoku board states.
- * Creates the required difficulty folders.
+ * Creates the required difficulty folders including the "current" folder for incomplete games.
  */
 public class GameStorageManager {
 
-    // Base directory where all game files will be stored relative to the application's starting point.
     private static final String BASE_DIR_NAME = "SudokuGames";
     private static final String BOARD_FILE_NAME = "board.csv";
     
-    // The Path object for the base directory
     private final Path basePath;
 
     public GameStorageManager() {
@@ -29,11 +27,8 @@ public class GameStorageManager {
      */
     private void setupDirectories() {
         try {
-            // Create the root directory if it doesn't exist
             Files.createDirectories(basePath);
             
-            // Create the subdirectories using the constants from the user's file
-            // NOTE: The class is spelled DifficutyConstants.java in your files.
             createDirectory(DifficultyConstants.EASY);
             createDirectory(DifficultyConstants.MEDIUM);
             createDirectory(DifficultyConstants.HARD);
@@ -41,18 +36,15 @@ public class GameStorageManager {
             
         } catch (IOException e) {
             System.err.println("Error setting up game directories: " + e.getMessage());
-            // An error here is critical, so we print and throw a runtime exception.
             throw new RuntimeException("Failed to set up game storage directories.", e);
         }
     }
 
- 
     private void createDirectory(String difficulty) throws IOException {
         Path dirPath = basePath.resolve(difficulty.toLowerCase());
         Files.createDirectories(dirPath);
     }
     
-  // hfhmha ba3deen
     private String getFilePath(String difficulty) {
         return basePath
             .resolve(difficulty.toLowerCase())
@@ -60,12 +52,12 @@ public class GameStorageManager {
             .toString();
     }
     
-   
+    /**
+     * Saves a board to the specified difficulty folder.
+     */
     public void saveBoard(SudokuBoard board, String difficulty) throws InvalidGameException {
         String filePath = getFilePath(difficulty);
-        Path savePath = Path.of(filePath);
-
-        // 1. Convert the 9x9 grid into a single CSV string
+        
         StringBuilder csvContent = new StringBuilder();
         for (int r = 0; r < 9; r++) {
             for (int c = 0; c < 9; c++) {
@@ -79,32 +71,65 @@ public class GameStorageManager {
             }
         }
         
-        // 2. Write the string to the file
         try (FileWriter writer = new FileWriter(filePath)) {
             writer.write(csvContent.toString());
-            // System.out.println("Game saved successfully to: " + savePath.toAbsolutePath());
         } catch (IOException e) {
             throw new InvalidGameException("Failed to save game file to " + filePath + ": " + e.getMessage());
         }
     }
     
+    /**
+     * Loads a board from the specified difficulty folder.
+     */
     public SudokuBoard loadBoard(String difficulty) throws NotFoundException, InvalidGameException {
-        // We rely on the SudokuBoard constructor to handle the actual file reading 
-        // and throw the appropriate exceptions (FileNotFound/NotFound, parsing errors/InvalidGame)
         String filePath = getFilePath(difficulty);
-        
-        // Ensure the SudokuBoard constructor has been updated to throw exceptions!
         return new SudokuBoard(filePath);
     }
+    
+    /**
+     * Gets the game catalog showing which games are available.
+     */
     public GameCatalog getGameCatalog() {
-    // Helper to check if the board.csv file exists in the specified difficulty folder
-    // Note: This relies on the file naming convention defined in GameStorageManager.
+        boolean easy = Files.exists(Path.of(getFilePath(DifficultyConstants.EASY)));
+        boolean medium = Files.exists(Path.of(getFilePath(DifficultyConstants.MEDIUM)));
+        boolean hard = Files.exists(Path.of(getFilePath(DifficultyConstants.HARD)));
+        boolean current = Files.exists(Path.of(getFilePath(DifficultyConstants.CURRENT)));
+        
+        return new GameCatalog(easy, medium, hard, current);
+    }
     
-    boolean easy = Files.exists(Path.of(getFilePath(DifficultyConstants.EASY)));
-    boolean medium = Files.exists(Path.of(getFilePath(DifficultyConstants.MEDIUM)));
-    boolean hard = Files.exists(Path.of(getFilePath(DifficultyConstants.HARD)));
-    boolean current = Files.exists(Path.of(getFilePath(DifficultyConstants.CURRENT)));
+    /**
+     * Deletes a game file for the specified difficulty.
+     * Used when a game is completed and verified as VALID.
+     */
+    public void deleteGame(String difficulty) throws IOException {
+        Path filePath = Path.of(getFilePath(difficulty));
+        
+        if (Files.exists(filePath)) {
+            Files.delete(filePath);
+        }
+    }
     
-    return new GameCatalog(easy, medium, hard, current);
-}
+    /**
+     * Saves the current game state to the "current" folder.
+     * This is called whenever the user makes a move.
+     */
+    public void saveCurrentGame(SudokuBoard board) throws InvalidGameException {
+        saveBoard(board, DifficultyConstants.CURRENT);
+    }
+    
+    /**
+     * Loads the current/incomplete game.
+     */
+    public SudokuBoard loadCurrentGame() throws NotFoundException, InvalidGameException {
+        return loadBoard(DifficultyConstants.CURRENT);
+    }
+    
+    /**
+     * Deletes the current/incomplete game.
+     * Called when the game is completed.
+     */
+    public void deleteCurrentGame() throws IOException {
+        deleteGame(DifficultyConstants.CURRENT);
+    }
 }
