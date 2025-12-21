@@ -209,4 +209,7 @@ public class ControllerFacade implements Controllable {
             default -> throw new NotFoundException("Invalid difficulty level: " + level);
         };
     }
+    public void deleteCompletedGame(DifficultyEnum difficulty) throws IOException {
+    controller.deleteCompletedGame(difficulty);
+}
 }
