@@ -1,3 +1,8 @@
+
+import game.ControllerFacade;
+import game.DifficultyEnum;
+import game.NotFoundException;
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
@@ -8,12 +13,40 @@
  * @author Eman
  */
 public class DifficultySelectionFrame extends javax.swing.JFrame {
+    private ControllerFacade controller;
 
     /**
      * Creates new form DifficultySelectionFrame
      */
-    public DifficultySelectionFrame() {
+    public DifficultySelectionFrame(ControllerFacade controller) {
+        this.controller = controller;
         initComponents();
+        setLocationRelativeTo(null); // Center on screen
+        setTitle("Sudoku - Select Difficulty");
+    }
+        private void loadGameByDifficulty(char level, DifficultyEnum difficulty) {
+        try {
+            // Load game using ControllerFacade
+            int[][] board = controller.getGame(level);
+            
+            // Close this frame
+            this.dispose();
+            
+            // Show game board
+            GameBoardFrame gameFrame = new GameBoardFrame(board, controller, difficulty);
+            gameFrame.setVisible(true);
+            
+        } catch (NotFoundException e) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "Game not found: " + e.getMessage(),
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "Error loading game: " + e.getMessage(),
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -25,26 +58,64 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        lblTitle = new javax.swing.JLabel();
+        btnEasy = new javax.swing.JButton();
+        btnMedium = new javax.swing.JButton();
+        btnHard = new javax.swing.JButton();
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        lblTitle.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        lblTitle.setText("    Select Difficulty Level");
+        getContentPane().add(lblTitle, new org.netbeans.lib.awtextra.AbsoluteConstraints(86, 22, 226, 27));
+
+        btnEasy.setBackground(new java.awt.Color(51, 204, 0));
+        btnEasy.setText("Easy");
+        btnEasy.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnEasyActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnEasy, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 90, 80, 38));
+
+        btnMedium.setBackground(new java.awt.Color(255, 255, 0));
+        btnMedium.setForeground(new java.awt.Color(51, 51, 0));
+        btnMedium.setText("Medium");
+        btnMedium.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnMediumActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnMedium, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 150, 80, 40));
+
+        btnHard.setBackground(new java.awt.Color(255, 0, 0));
+        btnHard.setText("Hard");
+        btnHard.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnHardActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnHard, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 210, 80, 40));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void btnEasyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEasyActionPerformed
+       loadGameByDifficulty('e', DifficultyEnum.EASY);  // TODO add your handling code here:
+    }//GEN-LAST:event_btnEasyActionPerformed
+
+    private void btnMediumActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnMediumActionPerformed
+        loadGameByDifficulty('m', DifficultyEnum.MEDIUM); // TODO add your handling code here:
+    }//GEN-LAST:event_btnMediumActionPerformed
+
+    private void btnHardActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHardActionPerformed
+       loadGameByDifficulty('h', DifficultyEnum.HARD); // TODO add your handling code here:
+    }//GEN-LAST:event_btnHardActionPerformed
+
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -69,13 +140,11 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new DifficultySelectionFrame().setVisible(true);
-            }
-        });
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnEasy;
+    private javax.swing.JButton btnHard;
+    private javax.swing.JButton btnMedium;
+    private javax.swing.JLabel lblTitle;
     // End of variables declaration//GEN-END:variables
 }
