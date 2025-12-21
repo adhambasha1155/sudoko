@@ -266,13 +266,23 @@ private void handleCellChange(int row, int col, JTextField cell) {
     boolean[][] validity = controller.verifyGame(board);
     
     boolean hasInvalid = false;
+    
+    // First, reset all editable cells to white background
     for (int r = 0; r < 9; r++) {
         for (int c = 0; c < 9; c++) {
+            if (originalBoard[r][c] == 0) { // Only reset editable cells
+                cells[r][c].setBackground(Color.WHITE);
+            }
+        }
+    }
+    
+    // Now highlight ONLY the invalid cells (duplicates) in red
+    for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+            // If the cell is invalid AND not empty, mark it red
             if (!validity[r][c] && board[r][c] != 0) {
                 cells[r][c].setBackground(new Color(255, 200, 200));
                 hasInvalid = true;
-            } else if (originalBoard[r][c] == 0) {
-                cells[r][c].setBackground(Color.WHITE);
             }
         }
     }
@@ -281,6 +291,7 @@ private void handleCellChange(int row, int col, JTextField cell) {
         lblStatus.setText("Status: Invalid - Duplicates found!");
         lblStatus.setForeground(Color.RED);
     } else {
+        // Check if board is complete
         boolean isComplete = true;
         for (int r = 0; r < 9; r++) {
             for (int c = 0; c < 9; c++) {
@@ -295,12 +306,26 @@ private void handleCellChange(int row, int col, JTextField cell) {
         if (isComplete) {
             lblStatus.setText("Status: Valid and Complete! 🎉");
             lblStatus.setForeground(new Color(0, 150, 0));
-            JOptionPane.showMessageDialog(this, "Congratulations!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Congratulations! You've completed the puzzle!", 
+                "Success", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Delete the finished game
+            try {
+                controller.deleteCompletedGame(difficulty);
+                
+                // Return to difficulty selection
+                this.dispose();
+                new DifficultySelectionFrame(controller).setVisible(true);
+            } catch (Exception ex) {
+                System.err.println("Error deleting completed game: " + ex.getMessage());
+            }
         } else {
             lblStatus.setText("Status: Valid but Incomplete");
             lblStatus.setForeground(new Color(200, 100, 0));
         }
-    }        // TODO add your handling code here:
+    }       // TODO add your handling code here:
     }//GEN-LAST:event_btnVerifyActionPerformed
 
     private void btnSolveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSolveActionPerformed
