@@ -1,4 +1,4 @@
-package game;
+package viewer;
 
 /**
  * Represents a user action on the Sudoku board.

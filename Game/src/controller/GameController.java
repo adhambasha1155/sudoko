@@ -1,5 +1,6 @@
-package game;
+package controller;
 
+import game.*;
 import java.io.IOException;
 
 /**
@@ -24,7 +25,6 @@ public class GameController implements Viewable {
     public Catalog getCatalog() {
         GameCatalog gameCatalog = storageManager.getGameCatalog();
         
-        // Convert GameCatalog to Catalog
         boolean current = gameCatalog.currentAvailable();
         boolean allModesExist = gameCatalog.easyAvailable() 
                               && gameCatalog.mediumAvailable() 
@@ -36,17 +36,10 @@ public class GameController implements Viewable {
     @Override
     public Game getGame(DifficultyEnum level) throws NotFoundException {
         try {
-            // Convert enum to string constant
             String difficulty = level.toConstant();
-            
-            // Load the board
             SudokuBoard board = storageManager.loadBoard(difficulty);
-            
-            // Convert to Game and return
             return Game.fromSudokuBoard(board);
-            
         } catch (InvalidGameException e) {
-            // Convert to NotFoundException if game is corrupted
             throw new NotFoundException("Game file is corrupted: " + e.getMessage());
         }
     }
@@ -54,10 +47,8 @@ public class GameController implements Viewable {
     @Override
     public void driveGames(Game sourceGame) throws SolutionInvalidException {
         try {
-            // 1. Convert Game to SudokuBoard
             SudokuBoard sourceBoard = sourceGame.toSudokuBoard();
             
-            // 2. Verify the source solution is VALID
             SudokuVerifier verifier = new SudokuVerifier(sourceBoard);
             ValidationResult result = verifier.verify();
             
@@ -68,12 +59,10 @@ public class GameController implements Viewable {
                 );
             }
             
-            // 3. Generate three difficulty levels
             SudokuBoard easyBoard = generator.generateBoard(DifficultyConstants.EASY);
             SudokuBoard mediumBoard = generator.generateBoard(DifficultyConstants.MEDIUM);
             SudokuBoard hardBoard = generator.generateBoard(DifficultyConstants.HARD);
             
-            // 4. Save all three games
             storageManager.saveBoard(easyBoard, DifficultyConstants.EASY);
             storageManager.saveBoard(mediumBoard, DifficultyConstants.MEDIUM);
             storageManager.saveBoard(hardBoard, DifficultyConstants.HARD);
@@ -88,27 +77,17 @@ public class GameController implements Viewable {
     @Override
     public String verifyGame(Game game) {
         try {
-            // Convert Game to SudokuBoard
             SudokuBoard board = game.toSudokuBoard();
-            
-            // Verify using SudokuVerifier
             SudokuVerifier verifier = new SudokuVerifier(board);
             ValidationResult result = verifier.verify();
             
             String status = result.getStatus();
             
-            // If INVALID, include duplicate information
             if (status.equals("INVALID")) {
-                // Get duplicate locations as a string
-                // Format: "INVALID 1,2 3,3 6,7" (example positions)
-                StringBuilder sb = new StringBuilder("INVALID");
-                
-                // You can extract duplicate positions from ValidationResult if needed
-                // For now, just return the status
                 return status;
             }
             
-            return status; // "VALID" or "INCOMPLETE"
+            return status;
             
         } catch (Exception e) {
             return "ERROR: " + e.getMessage();
@@ -117,22 +96,17 @@ public class GameController implements Viewable {
     
     @Override
     public int[] solveGame(Game game) throws InvalidGameException {
-        // Convert Game to SudokuBoard
         SudokuBoard board = game.toSudokuBoard();
-        
-        // Use the solver
         return solver.solve(board);
     }
     
     @Override
     public void logUserAction(String userAction) throws IOException {
-        // Log the message
         logger.logMessage(userAction);
     }
     
     /**
      * Additional helper method for saving current game state.
-     * Called by the facade when user makes a move.
      */
     public void saveCurrentGame(Game game) throws InvalidGameException {
         SudokuBoard board = game.toSudokuBoard();
@@ -149,19 +123,35 @@ public class GameController implements Viewable {
     
     /**
      * Handles undo operation.
-     * @return The UserAction that was undone, or null if log was empty
+     * Returns simple array to avoid using UserAction (viewer-side class).
+     * @return Array [row, col, previousValue] for the last action, or null if log was empty
      */
-    public UserAction undo() throws IOException {
-        UserAction lastAction = logger.getLastAction();
+    public int[] undo() throws IOException {
+        String lastLogEntry = logger.getLastLogEntry();
         
-        if (lastAction == null) {
-            return null; // Nothing to undo
+        if (lastLogEntry == null) {
+            return null;
         }
         
-        // Remove the action from log
+        int[] actionData = parseLogEntry(lastLogEntry);
         logger.removeLastAction();
         
-        return lastAction;
+        return new int[] { actionData[0], actionData[1], actionData[3] };
+    }
+    
+    /**
+     * Parses a log entry in format "(x, y, val, prev)" into an array.
+     */
+    private int[] parseLogEntry(String line) {
+        line = line.trim().replace("(", "").replace(")", "");
+        String[] parts = line.split(",");
+        
+        int row = Integer.parseInt(parts[0].trim());
+        int col = Integer.parseInt(parts[1].trim());
+        int newValue = Integer.parseInt(parts[2].trim());
+        int prevValue = Integer.parseInt(parts[3].trim());
+        
+        return new int[] { row, col, newValue, prevValue };
     }
     
     /**

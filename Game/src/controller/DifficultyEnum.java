@@ -1,6 +1,10 @@
-package game;
+package controller;
 
-
+/**
+ * Enum representing the difficulty levels for Sudoku games.
+ * Used in the Viewable interface (controller side).
+ * MUST ONLY BE USED ON CONTROLLER SIDE - NOT VIEWER SIDE.
+ */
 public enum DifficultyEnum {
     EASY,
     MEDIUM,

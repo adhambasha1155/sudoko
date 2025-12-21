@@ -2,13 +2,16 @@ package game;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Handles logging of user actions and undo functionality.
  * Log file is stored in the "current" folder alongside the current game.
  * Format: (x, y, val, prev) where prev is the previous value.
+ * 
+ * IMPORTANT: This class is in the game package (backend) and does NOT use
+ * UserAction (which is in the viewer package). It only works with strings
+ * and simple arrays to maintain architectural boundaries.
  */
 public class GameLogger {
     
@@ -55,13 +58,6 @@ public class GameLogger {
     }
     
     /**
-     * Logs a user action from a UserAction object.
-     */
-    public void logAction(UserAction action) throws IOException {
-        logAction(action.getRow(), action.getCol(), action.getNewValue(), action.getPreviousValue());
-    }
-    
-    /**
      * Logs a simple string message.
      */
     public void logMessage(String message) throws IOException {
@@ -70,11 +66,10 @@ public class GameLogger {
     }
     
     /**
-     * Gets the last action from the log file for undo purposes.
-     * @return UserAction representing the last logged action, or null if log is empty
-     * @throws IOException If reading fails
+     * Gets the last log entry as a raw string.
+     * @return The last line from the log file, or null if empty
      */
-    public UserAction getLastAction() throws IOException {
+    public String getLastLogEntry() throws IOException {
         if (!Files.exists(logFilePath)) {
             return null;
         }
@@ -85,20 +80,23 @@ public class GameLogger {
             return null;
         }
         
-        String lastLine = lines.get(lines.size() - 1);
-        return parseLogLine(lastLine);
+        return lines.get(lines.size() - 1);
     }
     
     /**
-     * Parses a log line in format "(x, y, val, prev)" into a UserAction.
+     * Parses a log entry string and returns the action data as an int array.
+     * Format: "(row, col, newVal, prevVal)" → [row, col, newVal, prevVal]
+     * 
+     * @param logEntry The log entry string to parse
+     * @return int array [row, col, newValue, previousValue]
      */
-    private UserAction parseLogLine(String line) {
+    public int[] parseLogEntry(String logEntry) {
         // Remove parentheses and split by comma
-        line = line.trim().replace("(", "").replace(")", "");
-        String[] parts = line.split(",");
+        String cleaned = logEntry.trim().replace("(", "").replace(")", "");
+        String[] parts = cleaned.split(",");
         
         if (parts.length != 4) {
-            throw new IllegalArgumentException("Invalid log format: " + line);
+            throw new IllegalArgumentException("Invalid log format: " + logEntry);
         }
         
         int row = Integer.parseInt(parts[0].trim());
@@ -106,7 +104,7 @@ public class GameLogger {
         int newValue = Integer.parseInt(parts[2].trim());
         int prevValue = Integer.parseInt(parts[3].trim());
         
-        return new UserAction(row, col, newValue, prevValue);
+        return new int[] { row, col, newValue, prevValue };
     }
     
     /**
@@ -153,27 +151,14 @@ public class GameLogger {
     }
     
     /**
-     * Gets all actions from the log file.
+     * Gets all log entries as strings.
+     * @return List of log entry strings
      */
-    public List<UserAction> getAllActions() throws IOException {
-        List<UserAction> actions = new ArrayList<>();
-        
+    public List<String> getAllLogEntries() throws IOException {
         if (!Files.exists(logFilePath)) {
-            return actions;
+            return List.of();
         }
         
-        List<String> lines = Files.readAllLines(logFilePath);
-        
-        for (String line : lines) {
-            if (!line.trim().isEmpty()) {
-                try {
-                    actions.add(parseLogLine(line));
-                } catch (IllegalArgumentException e) {
-                    System.err.println("Warning: Skipping invalid log line: " + line);
-                }
-            }
-        }
-        
-        return actions;
+        return Files.readAllLines(logFilePath);
     }
 }

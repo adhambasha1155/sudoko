@@ -1,7 +1,8 @@
-package game;
+package controller;
 
 /**
  * Represents the catalog of available games.
+ * MUST ONLY BE USED ON CONTROLLER SIDE - NOT VIEWER SIDE.
  * As per lab spec.
  */
 public class Catalog {

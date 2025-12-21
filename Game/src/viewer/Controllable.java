@@ -1,5 +1,8 @@
-package game;
+package viewer;
 
+import game.InvalidGameException;
+import game.NotFoundException;
+import game.SolutionInvalidException;
 import java.io.IOException;
 
 /**
