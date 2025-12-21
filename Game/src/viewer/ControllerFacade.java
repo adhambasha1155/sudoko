@@ -3,6 +3,7 @@ package viewer;
 import controller.*;
 import game.*;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Facade that implements the Controllable interface (for the GUI/View).
@@ -55,42 +56,71 @@ public class ControllerFacade implements Controllable {
     
     @Override
     public boolean[][] verifyGame(int[][] game) {
-        Game gameObj = new Game(game);
-        String status = controller.verifyGame(gameObj);
-        
+        // Create a boolean array to track which cells are valid
         boolean[][] validity = new boolean[9][9];
         
-        if (status.equals("VALID") || status.equals("INCOMPLETE")) {
+        // Initialize all cells as valid (assume valid until proven otherwise)
+        for (int r = 0; r < 9; r++) {
+            for (int c = 0; c < 9; c++) {
+                validity[r][c] = true;
+            }
+        }
+        
+        try {
+            // Create SudokuBoard from the game array
+            SudokuBoard board = new SudokuBoard(9);
             for (int r = 0; r < 9; r++) {
                 for (int c = 0; c < 9; c++) {
-                    validity[r][c] = true;
+                    board.setCell(r, c, game[r][c]);
                 }
             }
-        } else {
-            try {
-                SudokuBoard board = new SudokuBoard(9);
-                for (int r = 0; r < 9; r++) {
-                    for (int c = 0; c < 9; c++) {
-                        board.setCell(r, c, game[r][c]);
-                    }
-                }
+            
+            // Run verification
+            SudokuVerifier verifier = new SudokuVerifier(board);
+            ValidationResult result = verifier.verify();
+            
+            // If there are duplicates, mark the cells involved as invalid
+            List<ValidationResult.Duplicate> duplicates = result.getDuplicates();
+            
+            for (ValidationResult.Duplicate dup : duplicates) {
+                String type = dup.type();
+                int id = dup.id();
+                int value = dup.value();
+                List<Integer> locations = dup.locations();
                 
-                SudokuVerifier verifier = new SudokuVerifier(board);
-                ValidationResult result = verifier.verify();
-                
-                for (int r = 0; r < 9; r++) {
-                    for (int c = 0; c < 9; c++) {
-                        validity[r][c] = true;
-                    }
-                }
-                
-            } catch (Exception e) {
-                for (int r = 0; r < 9; r++) {
-                    for (int c = 0; c < 9; c++) {
-                        validity[r][c] = true;
+                // Mark all cells involved in this duplicate as invalid
+                for (int loc : locations) {
+                    if (type.equals("ROW")) {
+                        // For ROW duplicates:
+                        // - id = row number (0-8)
+                        // - loc = column number (0-8) where the duplicate value appears
+                        validity[id][loc] = false;
+                        
+                    } else if (type.equals("COL")) {
+                        // For COL duplicates:
+                        // - id = column number (0-8)
+                        // - loc = row number (0-8) where the duplicate value appears
+                        validity[loc][id] = false;
+                        
+                    } else if (type.equals("BOX")) {
+                        // For BOX duplicates:
+                        // - id = box number (0-8)
+                        // - loc = local index within the box (0-8)
+                        // Need to convert to absolute row/col
+                        int boxRow = (id / 3) * 3;  // Top-left row of the box
+                        int boxCol = (id % 3) * 3;  // Top-left col of the box
+                        int localRow = loc / 3;     // Row within the 3x3 box (0-2)
+                        int localCol = loc % 3;     // Col within the 3x3 box (0-2)
+                        int absRow = boxRow + localRow;
+                        int absCol = boxCol + localCol;
+                        validity[absRow][absCol] = false;
                     }
                 }
             }
+            
+        } catch (Exception e) {
+            System.err.println("Error verifying game: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return validity;

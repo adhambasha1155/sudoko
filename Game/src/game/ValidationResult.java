@@ -1,104 +1,214 @@
 package game;
+
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
+/**
+ * Stores the results of Sudoku board validation.
+ * Thread-safe implementation for concurrent checker operations.
+ */
 public class ValidationResult {
-
-    // Updated Record: Now stores 'locations' (the list of indices where the dupe appears)
-    public record Duplicate(String type, int id, int value, List<Integer> locations) {}
-
-    // New Fields for INCOMPLETE state checking
+    
+    // Thread-safe list of duplicates found
+    private final List<Duplicate> duplicates;
+    
+    // Flag indicating if any zero (empty cell) was found
+    private final boolean hasZero;
+    
+    // Reference to the board being validated
     private final SudokuBoard board;
-    private boolean hasZero = false;
-
-    // Thread-safe list
-    private final List<Duplicate> duplicates = new CopyOnWriteArrayList<>();
-
+    
     /**
-     * Constructor updated to accept SudokuBoard and check for the presence of 0s.
-     * This is required to determine the INCOMPLETE state.
-     * @param board The board to check for incomplete state.
+     * Record class representing a duplicate value found during validation.
+     */
+    public record Duplicate(
+        String type,           // "ROW", "COL", or "BOX"
+        int id,                // Row/Column/Box number (0-8)
+        int value,             // The duplicate value (1-9)
+        List<Integer> locations // Indices where the duplicate appears
+    ) {}
+    
+    /**
+     * Creates a ValidationResult and checks for zeros.
      */
     public ValidationResult(SudokuBoard board) {
         this.board = board;
-        // Check for 0s immediately upon creation
-        for(int r = 0; r < 9; r++) {
-            for(int c = 0; c < 9; c++) {
-                // If a cell contains '0', the board is incomplete.
-                if (board.getCell(r, c) == 0) {
-                    hasZero = true;
-                    // Stop checking as soon as one 0 is found
-                    return;
+        this.duplicates = new ArrayList<>();
+        this.hasZero = checkForZeros();
+    }
+    
+    /**
+     * Checks if the board contains any zeros (empty cells).
+     */
+    private boolean checkForZeros() {
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                if (board.getCell(row, col) == 0) {
+                    return true;
                 }
             }
         }
+        return false;
     }
-
-    public void addDuplicate(String type, int id, int value, List<Integer> locations) {
+    
+    /**
+     * Adds a duplicate to the results (thread-safe).
+     */
+    public synchronized void addDuplicate(String type, int id, int value, List<Integer> locations) {
         duplicates.add(new Duplicate(type, id, value, locations));
     }
-
+    
     /**
-     * Determines the overall status: VALID, INVALID, or INCOMPLETE.
+     * Gets all duplicates found.
+     * @return List of Duplicate records
+     */
+    public List<Duplicate> getDuplicates() {
+        return new ArrayList<>(duplicates); // Return copy for thread safety
+    }
+    
+    /**
+     * Checks if there are any duplicates.
+     */
+    public boolean hasDuplicates() {
+        return !duplicates.isEmpty();
+    }
+    
+    /**
+     * Gets the validation status.
+     * @return "VALID", "INVALID", or "INCOMPLETE"
      */
     public String getStatus() {
-        if (!duplicates.isEmpty()) {
+        if (hasDuplicates()) {
             return "INVALID";
-        }
-        if (hasZero) {
+        } else if (hasZero) {
             return "INCOMPLETE";
+        } else {
+            return "VALID";
         }
-        return "VALID";
     }
-
+    
     /**
-     * The board is truly valid only if no duplicates exist AND no empty cells exist.
+     * Checks if the board is valid (complete and no duplicates).
      */
     public boolean isValid() {
         return getStatus().equals("VALID");
     }
-
+    
+    /**
+     * Checks if the board is incomplete (has zeros).
+     */
+    public boolean isIncomplete() {
+        return hasZero;
+    }
+    
+    /**
+     * Gets the number of duplicates found.
+     */
+    public int getDuplicateCount() {
+        return duplicates.size();
+    }
+    
+    /**
+     * Prints all duplicates in a readable format.
+     */
     public void printDuplicates() {
-        String status = getStatus();
-        System.out.println(status);
-        
-        if (status.equals("VALID") || status.equals("INCOMPLETE")) {
-            // Only print details if invalid
+        if (duplicates.isEmpty()) {
+            System.out.println("No duplicates found.");
             return;
         }
-
-        // Convert to a standard list to sort it for the report
-        List<Duplicate> sortedList = new ArrayList<>(duplicates);
         
-        // Sort to ensure a consistent output order: ROW -> COL -> BOX
-        sortedList.sort(Comparator.comparingInt(d -> {
-            return switch (d.type()) {
-                case "ROW" -> 1;
-                case "COL" -> 2;
-                case "BOX" -> 3;
-                default -> 4;
-            };
-        }));
-
-        String currentType = "";
-        
-        for (Duplicate d : sortedList) {
-            // Print separator line when type changes (ROW -> COL)
-            if (!d.type().equals(currentType)) {
-                if (!currentType.isEmpty()) {
-                    System.out.println("------------------------------------------");
-                }
-                currentType = d.type();
-            }
-
-            // Output Format: ROW 1, #1, [1, 2, 3]
+        System.out.println("Duplicates found:");
+        for (Duplicate dup : duplicates) {
             System.out.printf("%s %d, #%d, %s%n", 
-                d.type(), 
-                d.id() + 1,       // Convert 0-based index to 1-based index
-                d.value(),        // The duplicate value itself
-                d.locations());   // The list of 1-based column/row/box indices
+                dup.type(), 
+                dup.id(), 
+                dup.value(), 
+                dup.locations());
         }
+    }
+    
+    /**
+     * Gets a formatted string representation of the validation result.
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ValidationResult{");
+        sb.append("status=").append(getStatus());
+        sb.append(", duplicates=").append(duplicates.size());
+        sb.append(", hasZero=").append(hasZero);
+        sb.append("}");
+        return sb.toString();
+    }
+    
+    /**
+     * Gets duplicates grouped by type (ROW, COL, BOX).
+     */
+    public Map<String, List<Duplicate>> getDuplicatesByType() {
+        return duplicates.stream()
+            .collect(Collectors.groupingBy(Duplicate::type));
+    }
+    
+    /**
+     * Gets duplicates for a specific row.
+     */
+    public List<Duplicate> getRowDuplicates(int row) {
+        return duplicates.stream()
+            .filter(d -> d.type().equals("ROW") && d.id() == row)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Gets duplicates for a specific column.
+     */
+    public List<Duplicate> getColumnDuplicates(int col) {
+        return duplicates.stream()
+            .filter(d -> d.type().equals("COL") && d.id() == col)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Gets duplicates for a specific box.
+     */
+    public List<Duplicate> getBoxDuplicates(int box) {
+        return duplicates.stream()
+            .filter(d -> d.type().equals("BOX") && d.id() == box)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Checks if a specific cell is involved in any duplicate.
+     * @param row Row index (0-8)
+     * @param col Column index (0-8)
+     * @return true if the cell is part of a duplicate
+     */
+    public boolean isCellInvalid(int row, int col) {
+        // Check row duplicates
+        for (Duplicate dup : getRowDuplicates(row)) {
+            if (dup.locations().contains(col)) {
+                return true;
+            }
+        }
+        
+        // Check column duplicates
+        for (Duplicate dup : getColumnDuplicates(col)) {
+            if (dup.locations().contains(row)) {
+                return true;
+            }
+        }
+        
+        // Check box duplicates
+        int boxId = (row / 3) * 3 + (col / 3);
+        for (Duplicate dup : getBoxDuplicates(boxId)) {
+            int localIndex = (row % 3) * 3 + (col % 3);
+            if (dup.locations().contains(localIndex)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }
