@@ -14,6 +14,8 @@ import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
@@ -29,6 +31,7 @@ public class GameBoardFrame extends javax.swing.JFrame {
     private ControllerFacade controller;
     private DifficultyEnum difficulty;
     private JTextField[][] cells;
+    private boolean isUndoing = false;
 
     /**
      * Creates new form GameBoardFrame
@@ -174,21 +177,24 @@ public class GameBoardFrame extends javax.swing.JFrame {
     }
 
     private void handleCellChange(int row, int col, JTextField cell) {
-        String text = cell.getText().trim();
-        int newValue = text.isEmpty() ? 0 : Integer.parseInt(text);
-        int previousValue = board[row][col];
+         String text = cell.getText().trim();
+    int newValue = text.isEmpty() ? 0 : Integer.parseInt(text);
+    int previousValue = board[row][col];
 
-        if (newValue != previousValue) {
-            board[row][col] = newValue;
+    if (newValue != previousValue) {
+        board[row][col] = newValue;
 
-            try {
+        try {
+            // ✅ CRITICAL: Only log if NOT undoing
+            if (!isUndoing) {
                 UserAction action = new UserAction(row, col, newValue, previousValue);
                 controller.logUserAction(action);
-                controller.saveCurrentGame(board);
-            } catch (IOException | InvalidGameException ex) {
-                System.err.println("Error: " + ex.getMessage());
             }
+            controller.saveCurrentGame(board);
+        } catch (IOException | InvalidGameException ex) {
+            System.err.println("Error: " + ex.getMessage());
         }
+    }
     }
 
     /**
@@ -437,7 +443,7 @@ public class GameBoardFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_btnSolveActionPerformed
 
     private void btnUndoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUndoActionPerformed
-            try {
+           try {
         int[] undoData = controller.undo();
 
         if (undoData == null) {
@@ -448,20 +454,27 @@ public class GameBoardFrame extends javax.swing.JFrame {
             return;
         }
 
-        // undoData = [row, col, previousValue]
         int row = undoData[0];
         int col = undoData[1];
         int prevValue = undoData[2];
 
-        // Revert the cell
-        board[row][col] = prevValue;
-        cells[row][col].setText(prevValue == 0 ? "" : String.valueOf(prevValue));
+        // ✅ Set flag BEFORE changing anything
+        isUndoing = true;
+        
+        try {
+            // Revert the cell
+            board[row][col] = prevValue;
+            cells[row][col].setText(prevValue == 0 ? "" : String.valueOf(prevValue));
 
-        // Save the reverted state
-        controller.saveCurrentGame(board);
+            // Save the reverted state
+            controller.saveCurrentGame(board);
 
-        lblStatus.setText("Status: Undo successful");
-        lblStatus.setForeground(Color.BLUE);
+            lblStatus.setText("Status: Undo successful");
+            lblStatus.setForeground(Color.BLUE);
+        } finally {
+            // ✅ ALWAYS reset flag in finally block
+            isUndoing = false;
+        }
 
     } catch (IOException | InvalidGameException ex) {
         JOptionPane.showMessageDialog(this,
@@ -472,6 +485,11 @@ public class GameBoardFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_btnUndoActionPerformed
 
     private void btnNewGameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNewGameActionPerformed
+        try {
+            controller.clearLog();
+        } catch (IOException ex) {
+            Logger.getLogger(GameBoardFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
         int choice = JOptionPane.showConfirmDialog(this,
             "Start a new game? Current progress will be lost.",
             "Confirm",
