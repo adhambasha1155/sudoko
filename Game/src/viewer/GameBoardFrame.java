@@ -437,58 +437,71 @@ public class GameBoardFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_btnSolveActionPerformed
 
     private void btnUndoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUndoActionPerformed
-        try {
-            UserAction lastAction = controller.undo();
+            try {
+        int[] undoData = controller.undo();
 
-            if (lastAction == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Nothing to undo",
-                        "Info",
-                        JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            // Revert the cell
-            int row = lastAction.getRow();
-            int col = lastAction.getCol();
-            int prevValue = lastAction.getPreviousValue();
-
-            board[row][col] = prevValue;
-            cells[row][col].setText(prevValue == 0 ? "" : String.valueOf(prevValue));
-
-            // Save the reverted state
-            controller.saveCurrentGame(board);
-
-            lblStatus.setText("Status: Undo successful");
-            lblStatus.setForeground(Color.BLUE);
-
-        } catch (IOException | InvalidGameException ex) {
+        if (undoData == null) {
             JOptionPane.showMessageDialog(this,
-                    "Error performing undo: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }        // TODO add your handling code here:
+                    "Nothing to undo",
+                    "Info",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // undoData = [row, col, previousValue]
+        int row = undoData[0];
+        int col = undoData[1];
+        int prevValue = undoData[2];
+
+        // Revert the cell
+        board[row][col] = prevValue;
+        cells[row][col].setText(prevValue == 0 ? "" : String.valueOf(prevValue));
+
+        // Save the reverted state
+        controller.saveCurrentGame(board);
+
+        lblStatus.setText("Status: Undo successful");
+        lblStatus.setForeground(Color.BLUE);
+
+    } catch (IOException | InvalidGameException ex) {
+        JOptionPane.showMessageDialog(this,
+                "Error performing undo: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }// TODO add your handling code here:
     }//GEN-LAST:event_btnUndoActionPerformed
 
     private void btnNewGameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNewGameActionPerformed
         int choice = JOptionPane.showConfirmDialog(this,
-                "Start a new game? Current progress will be lost.",
-                "Confirm",
-                JOptionPane.YES_NO_OPTION);
+            "Start a new game? Current progress will be lost.",
+            "Confirm",
+            JOptionPane.YES_NO_OPTION);
 
-        if (choice == JOptionPane.YES_OPTION) {
-            this.dispose();
-            new DifficultySelectionFrame(controller).setVisible(true);
-        }        // TODO add your handling code here:
+    if (choice == JOptionPane.YES_OPTION) {
+        try {
+            // Clear the undo log before starting a new game
+            controller.clearLog();
+        } catch (IOException ex) {
+            System.err.println("Error clearing log: " + ex.getMessage());
+        }
+        this.dispose();
+        new DifficultySelectionFrame(controller).setVisible(true);
+    }//DO add your handling code here:
     }//GEN-LAST:event_btnNewGameActionPerformed
 
     private void BtnBackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnBackActionPerformed
   int choice = JOptionPane.showConfirmDialog(this,
-        "Go back to difficulty selection? Current progress will not be saved.",
-        "Confirm Back",
-        JOptionPane.YES_NO_OPTION);
+            "Go back to difficulty selection? Current progress will not be saved.",
+            "Confirm Back",
+            JOptionPane.YES_NO_OPTION);
     
     if (choice == JOptionPane.YES_OPTION) {
+        try {
+            // Clear the undo log before going back
+            controller.clearLog();
+        } catch (IOException ex) {
+            System.err.println("Error clearing log: " + ex.getMessage());
+        }
         // Progress is already auto-saved in handleCellChange
         this.dispose();
         new DifficultySelectionFrame(controller).setVisible(true);
