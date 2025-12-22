@@ -172,9 +172,30 @@ public class ControllerFacade implements Controllable {
      * Additional helper method for GUI to perform undo.
      * @return The action that was undone (UserAction for viewer side), or null if nothing to undo
      */
-public int[] undo() throws IOException {
-    return controller.undo();
-}
+    public UserAction undo() throws IOException {
+        // Get the last log entry from backend
+        GameLogger logger = new GameLogger();
+        String lastEntry = logger.getLastLogEntry();
+        
+        if (lastEntry == null) {
+            return null; // Nothing to undo
+        }
+        
+        // Parse it using GameLogger's method (returns int[])
+        int[] actionData = logger.parseLogEntry(lastEntry);
+        
+        // Remove the entry
+        logger.removeLastAction();
+        
+        // Convert int[] to UserAction (viewer-side conversion)
+        // actionData = [row, col, newValue, previousValue]
+        return new UserAction(
+            actionData[0],  // row
+            actionData[1],  // col
+            actionData[2],  // newValue
+            actionData[3]   // previousValue
+        );
+    }
     
     /**
      * Converts char level to DifficultyEnum.
@@ -190,9 +211,5 @@ public int[] undo() throws IOException {
     }
     public void deleteCompletedGame(DifficultyEnum difficulty) throws IOException {
     controller.deleteCompletedGame(difficulty);
-}
-    public void clearLog() throws IOException {
-    GameLogger logger = new GameLogger();
-    logger.clearLog();
 }
 }
