@@ -163,4 +163,17 @@ public class GameController implements Viewable {
         storageManager.deleteCurrentGame();
         logger.clearLog();
     }
+    /**
+ * Saves the original puzzle for a difficulty level.
+ */
+public void saveOriginalGame(Game game, DifficultyEnum difficulty) throws InvalidGameException {
+    SudokuBoard board = game.toSudokuBoard();
+    String difficultyStr = difficulty.toConstant() + "_ORIGINAL";
+    storageManager.saveBoard(board, difficultyStr);
+}
+public Game getOriginalGame(DifficultyEnum difficulty) throws NotFoundException, InvalidGameException {
+    String difficultyStr = difficulty.toConstant() + "_ORIGINAL";
+    SudokuBoard board = storageManager.loadBoard(difficultyStr);
+    return Game.fromSudokuBoard(board);
+}
 }

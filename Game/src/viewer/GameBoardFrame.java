@@ -14,6 +14,8 @@ import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
@@ -23,137 +25,183 @@ import javax.swing.JTextField;
  * @author Eman
  */
 public class GameBoardFrame extends javax.swing.JFrame {
+
     private int[][] board;
     private int[][] originalBoard;
     private ControllerFacade controller;
     private DifficultyEnum difficulty;
     private JTextField[][] cells;
+    private boolean isUndoing = false;
 
     /**
      * Creates new form GameBoardFrame
      */
     public GameBoardFrame(int[][] board, ControllerFacade controller, DifficultyEnum difficulty) {
     this.board = deepCopy(board);
-    this.originalBoard = deepCopy(board);
+    try {
+        this.originalBoard = controller.getOriginalGame(difficulty);
+    } catch (Exception e) {
+        System.err.println("Warning: Could not load original board, using current: " + e.getMessage());
+        this.originalBoard = deepCopy(board);
+    }
+    
     this.controller = controller;
     this.difficulty = difficulty;
-    
-    initComponents();  // NetBeans generated
-    setLocationRelativeTo(null);
-    setTitle("Sudoku Game - " + difficulty.name());
-    
-    createSudokuGrid();  // Your custom method
-    displayBoard();
+
+        initComponents();
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        setTitle("Sudoku Game - " + difficulty.name());
+        // ✅ Add window listener to handle proper cleanup
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                handleWindowClose();
+            }
+        });
+
+        createSudokuGrid();
+        displayBoard();
+        
     }
+
+
+    private void handleWindowClose() {
+        int choice = JOptionPane.showConfirmDialog(this,
+                "Do you want to save your progress?",
+                "Exit Game",
+                JOptionPane.YES_NO_CANCEL_OPTION);
+
+        if (choice == JOptionPane.CANCEL_OPTION) {
+            // Don't close
+            return;
+        } else if (choice == JOptionPane.YES_OPTION) {
+            // Progress is already saved automatically in handleCellChange
+            // Just exit normally
+            System.exit(0);
+        } else {
+            // NO - Delete the current game (don't save progress)
+            try {
+                controller.deleteCompletedGame(DifficultyEnum.CURRENT);
+            } catch (Exception ex) {
+                System.err.println("Error deleting game: " + ex.getMessage());
+            }
+            System.exit(0);
+        }
+    }
+
     private void createSudokuGrid() {
-    // Remove any existing components
-    gridPanel.removeAll();
-    
-    // Set layout
-    gridPanel.setLayout(new GridLayout(9, 9, 0, 0));
-    
-    // Create 81 text fields
-    cells = new JTextField[9][9];
-    
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            JTextField cell = new JTextField();
-            cell.setHorizontalAlignment(JTextField.CENTER);
-            cell.setFont(new Font("Arial", Font.BOLD, 20));
-            
-            // Borders for 3x3 boxes
-            int top = (row % 3 == 0) ? 2 : 1;
-            int left = (col % 3 == 0) ? 2 : 1;
-            int bottom = (row == 8) ? 2 : ((row % 3 == 2) ? 2 : 1);
-            int right = (col == 8) ? 2 : ((col % 3 == 2) ? 2 : 1);
-            
-            cell.setBorder(BorderFactory.createMatteBorder(top, left, bottom, right, Color.BLACK));
-            
-            // Original cells are read-only
-            if (originalBoard[row][col] != 0) {
-                cell.setEditable(false);
-                cell.setBackground(new Color(230, 230, 230));
-                cell.setForeground(Color.BLACK);
-            } else {
-                cell.setBackground(Color.WHITE);
-                cell.setForeground(new Color(0, 0, 200));
-            }
-            
-            final int r = row;
-            final int c = col;
-            
-            // Input validation
-            cell.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyTyped(KeyEvent e) {
-                    char ch = e.getKeyChar();
-                    if (ch == KeyEvent.VK_BACK_SPACE || ch == KeyEvent.VK_DELETE) {
-                        return;
-                    }
-                    if (ch < '1' || ch > '9') {
-                        e.consume();
-                        return;
-                    }
-                    if (cell.getText().length() >= 1) {
-                        e.consume();
-                    }
-                }
-            });
-            
-            // Save on focus lost
-            cell.addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusLost(FocusEvent e) {
-                    handleCellChange(r, c, cell);
-                }
-            });
-            
-            cells[row][col] = cell;
-            gridPanel.add(cell);
-        }
-    }
-    
-    gridPanel.revalidate();
-    gridPanel.repaint();
-}
+        // Remove any existing components
+        gridPanel.removeAll();
 
-private void displayBoard() {
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            if (board[row][col] != 0) {
-                cells[row][col].setText(String.valueOf(board[row][col]));
-            } else {
-                cells[row][col].setText("");
+        // Set layout
+        gridPanel.setLayout(new GridLayout(9, 9, 0, 0));
+
+        // Create 81 text fields
+        cells = new JTextField[9][9];
+
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                JTextField cell = new JTextField();
+                cell.setHorizontalAlignment(JTextField.CENTER);
+                cell.setFont(new Font("Arial", Font.BOLD, 20));
+
+                // Borders for 3x3 boxes
+                int top = (row % 3 == 0) ? 2 : 1;
+                int left = (col % 3 == 0) ? 2 : 1;
+                int bottom = (row == 8) ? 2 : ((row % 3 == 2) ? 2 : 1);
+                int right = (col == 8) ? 2 : ((col % 3 == 2) ? 2 : 1);
+
+                cell.setBorder(BorderFactory.createMatteBorder(top, left, bottom, right, Color.BLACK));
+
+                // Original cells are read-only
+                if (originalBoard[row][col] != 0) {
+                    cell.setEditable(false);
+                    cell.setBackground(new Color(230, 230, 230));
+                    cell.setForeground(Color.BLACK);
+                } else {
+                    cell.setBackground(Color.WHITE);
+                    cell.setForeground(new Color(0, 0, 200));
+                }
+
+                final int r = row;
+                final int c = col;
+
+                // Input validation
+                cell.addKeyListener(new KeyAdapter() {
+                    @Override
+                    public void keyTyped(KeyEvent e) {
+                        char ch = e.getKeyChar();
+                        if (ch == KeyEvent.VK_BACK_SPACE || ch == KeyEvent.VK_DELETE) {
+                            return;
+                        }
+                        if (ch < '1' || ch > '9') {
+                            e.consume();
+                            return;
+                        }
+                        if (cell.getText().length() >= 1) {
+                            e.consume();
+                        }
+                    }
+                });
+
+                // Save on focus lost
+                cell.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        handleCellChange(r, c, cell);
+                    }
+                });
+
+                cells[row][col] = cell;
+                gridPanel.add(cell);
             }
         }
-    }
-}
 
-private int[][] deepCopy(int[][] original) {
-    int[][] copy = new int[9][9];
-    for (int r = 0; r < 9; r++) {
-        System.arraycopy(original[r], 0, copy[r], 0, 9);
+        gridPanel.revalidate();
+        gridPanel.repaint();
     }
-    return copy;
-}
 
-private void handleCellChange(int row, int col, JTextField cell) {
-    String text = cell.getText().trim();
+    private void displayBoard() {
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                if (board[row][col] != 0) {
+                    cells[row][col].setText(String.valueOf(board[row][col]));
+                } else {
+                    cells[row][col].setText("");
+                }
+            }
+        }
+    }
+
+    private int[][] deepCopy(int[][] original) {
+        int[][] copy = new int[9][9];
+        for (int r = 0; r < 9; r++) {
+            System.arraycopy(original[r], 0, copy[r], 0, 9);
+        }
+        return copy;
+    }
+
+    private void handleCellChange(int row, int col, JTextField cell) {
+         String text = cell.getText().trim();
     int newValue = text.isEmpty() ? 0 : Integer.parseInt(text);
     int previousValue = board[row][col];
-    
+
     if (newValue != previousValue) {
         board[row][col] = newValue;
-        
+
         try {
-            UserAction action = new UserAction(row, col, newValue, previousValue);
-            controller.logUserAction(action);
+            // ✅ CRITICAL: Only log if NOT undoing
+            if (!isUndoing) {
+                UserAction action = new UserAction(row, col, newValue, previousValue);
+                controller.logUserAction(action);
+            }
             controller.saveCurrentGame(board);
         } catch (IOException | InvalidGameException ex) {
             System.err.println("Error: " + ex.getMessage());
         }
     }
-}
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -170,6 +218,7 @@ private void handleCellChange(int row, int col, JTextField cell) {
         btnUndo = new javax.swing.JButton();
         btnNewGame = new javax.swing.JButton();
         gridPanel = new javax.swing.JPanel();
+        BtnBack = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -215,14 +264,22 @@ private void handleCellChange(int row, int col, JTextField cell) {
             .addGap(0, 241, Short.MAX_VALUE)
         );
 
+        BtnBack.setBackground(new java.awt.Color(255, 255, 0));
+        BtnBack.setText("Back");
+        BtnBack.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnBackActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(btnVerify)
                         .addGap(27, 27, 27)
                         .addComponent(btnSolve)
@@ -231,7 +288,8 @@ private void handleCellChange(int row, int col, JTextField cell) {
                         .addGap(18, 18, 18)
                         .addComponent(btnNewGame))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(124, 124, 124)
+                        .addComponent(BtnBack)
+                        .addGap(43, 43, 43)
                         .addComponent(lblStatus)))
                 .addContainerGap(16, Short.MAX_VALUE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -243,8 +301,13 @@ private void handleCellChange(int row, int col, JTextField cell) {
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(16, 16, 16)
-                .addComponent(lblStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(16, 16, 16)
+                        .addComponent(lblStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(BtnBack)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 262, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnVerify)
@@ -263,69 +326,76 @@ private void handleCellChange(int row, int col, JTextField cell) {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnVerifyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerifyActionPerformed
-    boolean[][] validity = controller.verifyGame(board);
-    
-    boolean hasInvalid = false;
-    
-    // First, reset all editable cells to white background
-    for (int r = 0; r < 9; r++) {
-        for (int c = 0; c < 9; c++) {
-            if (originalBoard[r][c] == 0) { // Only reset editable cells
-                cells[r][c].setBackground(Color.WHITE);
-            }
-        }
-    }
-    
-    // Now highlight ONLY the invalid cells (duplicates) in red
-    for (int r = 0; r < 9; r++) {
-        for (int c = 0; c < 9; c++) {
-            // If the cell is invalid AND not empty, mark it red
-            if (!validity[r][c] && board[r][c] != 0) {
-                cells[r][c].setBackground(new Color(255, 200, 200));
-                hasInvalid = true;
-            }
-        }
-    }
-    
-    if (hasInvalid) {
-        lblStatus.setText("Status: Invalid - Duplicates found!");
-        lblStatus.setForeground(Color.RED);
-    } else {
-        // Check if board is complete
-        boolean isComplete = true;
+
+        boolean[][] validity = controller.verifyGame(board);
+
+        boolean hasInvalid = false;
+
+        // IMPORTANT: Reset ALL cells to their default colors first
         for (int r = 0; r < 9; r++) {
             for (int c = 0; c < 9; c++) {
-                if (board[r][c] == 0) {
-                    isComplete = false;
+                if (originalBoard[r][c] == 0) {
+                    // Editable cells -> white background
+                    cells[r][c].setBackground(Color.WHITE);
+                } else {
+                    // Original cells -> gray background
+                    cells[r][c].setBackground(new Color(230, 230, 230));
+                }
+            }
+        }
+
+        // Now highlight ONLY the currently invalid cells in red
+        for (int r = 0; r < 9; r++) {
+            for (int c = 0; c < 9; c++) {
+                // If the cell is invalid AND not empty, mark it red
+                if (!validity[r][c] && board[r][c] != 0) {
+                    cells[r][c].setBackground(new Color(255, 200, 200));
+                    hasInvalid = true;
+                }
+            }
+        }
+
+        if (hasInvalid) {
+            lblStatus.setText("Status: Invalid - Duplicates found!");
+            lblStatus.setForeground(Color.RED);
+        } else {
+            // Check if board is complete
+            boolean isComplete = true;
+            for (int r = 0; r < 9; r++) {
+                for (int c = 0; c < 9; c++) {
+                    if (board[r][c] == 0) {
+                        isComplete = false;
+                        break;
+                    }
+                }
+                if (!isComplete) {
                     break;
                 }
             }
-            if (!isComplete) break;
-        }
-        
-        if (isComplete) {
-            lblStatus.setText("Status: Valid and Complete! 🎉");
-            lblStatus.setForeground(new Color(0, 150, 0));
-            JOptionPane.showMessageDialog(this, 
-                "Congratulations! You've completed the puzzle!", 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Delete the finished game
-            try {
-                controller.deleteCompletedGame(difficulty);
-                
-                // Return to difficulty selection
-                this.dispose();
-                new DifficultySelectionFrame(controller).setVisible(true);
-            } catch (Exception ex) {
-                System.err.println("Error deleting completed game: " + ex.getMessage());
+
+            if (isComplete) {
+                lblStatus.setText("Status: Valid and Complete! 🎉");
+                lblStatus.setForeground(new Color(0, 150, 0));
+                JOptionPane.showMessageDialog(this,
+                        "Congratulations! You've completed the puzzle!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                // Delete the finished game
+                try {
+                    controller.deleteCompletedGame(difficulty);
+
+                    // Return to difficulty selection
+                    this.dispose();
+                    new WelcomeFrame().setVisible(true);
+                } catch (Exception ex) {
+                    System.err.println("Error deleting completed game: " + ex.getMessage());
+                }
+            } else {
+                lblStatus.setText("Status: Valid but Incomplete");
+                lblStatus.setForeground(new Color(200, 100, 0));
             }
-        } else {
-            lblStatus.setText("Status: Valid but Incomplete");
-            lblStatus.setForeground(new Color(200, 100, 0));
-        }
-    }       // TODO add your handling code here:
+        }    // TODO add your handling code here:
     }//GEN-LAST:event_btnVerifyActionPerformed
 
     private void btnSolveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSolveActionPerformed
@@ -334,100 +404,140 @@ private void handleCellChange(int row, int col, JTextField cell) {
             int emptyCount = 0;
             for (int r = 0; r < 9; r++) {
                 for (int c = 0; c < 9; c++) {
-                    if (board[r][c] == 0) emptyCount++;
+                    if (board[r][c] == 0) {
+                        emptyCount++;
+                    }
                 }
             }
-            
+
             if (emptyCount != 5) {
                 JOptionPane.showMessageDialog(this,
-                    "Solve feature requires exactly 5 empty cells.\nCurrent empty cells: " + emptyCount,
-                    "Cannot Solve",
-                    JOptionPane.WARNING_MESSAGE);
+                        "Solve feature requires exactly 5 empty cells.\nCurrent empty cells: " + emptyCount,
+                        "Cannot Solve",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
+
             // Call solver
             int[][] solution = controller.solveGame(board);
-            
+
             // Apply solution
             for (int i = 0; i < solution.length; i++) {
                 int row = solution[i][0];
                 int col = solution[i][1];
                 int value = solution[i][2];
-                
+
                 board[row][col] = value;
                 cells[row][col].setText(String.valueOf(value));
                 cells[row][col].setForeground(new Color(0, 150, 0)); // Green for solved
             }
-            
+
             lblStatus.setText("Status: Puzzle Solved!");
             lblStatus.setForeground(new Color(0, 150, 0));
-            
+
             JOptionPane.showMessageDialog(this,
-                "Puzzle solved successfully!",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
-                
+                    "Puzzle solved successfully!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+
         } catch (InvalidGameException ex) {
             JOptionPane.showMessageDialog(this,
-                "Cannot solve: " + ex.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+                    "Cannot solve: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }        // TODO add your handling code here:
     }//GEN-LAST:event_btnSolveActionPerformed
 
     private void btnUndoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUndoActionPerformed
-        try {
-            UserAction lastAction = controller.undo();
-            
-            if (lastAction == null) {
-                JOptionPane.showMessageDialog(this,
+           try {
+        int[] undoData = controller.undo();
+
+        if (undoData == null) {
+            JOptionPane.showMessageDialog(this,
                     "Nothing to undo",
                     "Info",
                     JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            
+            return;
+        }
+
+        int row = undoData[0];
+        int col = undoData[1];
+        int prevValue = undoData[2];
+
+        // ✅ Set flag BEFORE changing anything
+        isUndoing = true;
+        
+        try {
             // Revert the cell
-            int row = lastAction.getRow();
-            int col = lastAction.getCol();
-            int prevValue = lastAction.getPreviousValue();
-            
             board[row][col] = prevValue;
             cells[row][col].setText(prevValue == 0 ? "" : String.valueOf(prevValue));
-            
+
             // Save the reverted state
             controller.saveCurrentGame(board);
-            
+
             lblStatus.setText("Status: Undo successful");
             lblStatus.setForeground(Color.BLUE);
-            
-        } catch (IOException | InvalidGameException ex) {
-            JOptionPane.showMessageDialog(this,
+        } finally {
+            // ✅ ALWAYS reset flag in finally block
+            isUndoing = false;
+        }
+
+    } catch (IOException | InvalidGameException ex) {
+        JOptionPane.showMessageDialog(this,
                 "Error performing undo: " + ex.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
-        }        // TODO add your handling code here:
+    }// TODO add your handling code here:
     }//GEN-LAST:event_btnUndoActionPerformed
 
     private void btnNewGameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNewGameActionPerformed
+        try {
+            controller.clearLog();
+        } catch (IOException ex) {
+            Logger.getLogger(GameBoardFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
         int choice = JOptionPane.showConfirmDialog(this,
             "Start a new game? Current progress will be lost.",
             "Confirm",
             JOptionPane.YES_NO_OPTION);
-        
-        if (choice == JOptionPane.YES_OPTION) {
-            this.dispose();
-            new DifficultySelectionFrame(controller).setVisible(true);
-        }        // TODO add your handling code here:
+
+    if (choice == JOptionPane.YES_OPTION) {
+        try {
+            // Clear the undo log before starting a new game
+            controller.clearLog();
+        } catch (IOException ex) {
+            System.err.println("Error clearing log: " + ex.getMessage());
+        }
+        this.dispose();
+        new DifficultySelectionFrame(controller).setVisible(true);
+    }//DO add your handling code here:
     }//GEN-LAST:event_btnNewGameActionPerformed
+
+    private void BtnBackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnBackActionPerformed
+  int choice = JOptionPane.showConfirmDialog(this,
+            "Go back to difficulty selection? Current progress will not be saved.",
+            "Confirm Back",
+            JOptionPane.YES_NO_OPTION);
+    
+    if (choice == JOptionPane.YES_OPTION) {
+        try {
+            // Clear the undo log before going back
+            controller.clearLog();
+        } catch (IOException ex) {
+            System.err.println("Error clearing log: " + ex.getMessage());
+        }
+        // Progress is already auto-saved in handleCellChange
+        this.dispose();
+        new DifficultySelectionFrame(controller).setVisible(true);
+    }        // TODO add your handling code here:
+    }//GEN-LAST:event_BtnBackActionPerformed
 
     /**
      * @param args the command line arguments
      */
 
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton BtnBack;
     private javax.swing.JButton btnNewGame;
     private javax.swing.JButton btnSolve;
     private javax.swing.JButton btnUndo;
