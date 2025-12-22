@@ -65,7 +65,7 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
         btnEasy = new javax.swing.JButton();
         btnMedium = new javax.swing.JButton();
         btnHard = new javax.swing.JButton();
-        btnBack = new javax.swing.JButton();
+        btnback = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -102,13 +102,14 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
         });
         getContentPane().add(btnHard, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 210, 80, 40));
 
-        btnBack.setText("Back");
-        btnBack.addActionListener(new java.awt.event.ActionListener() {
+        btnback.setBackground(new java.awt.Color(255, 255, 0));
+        btnback.setText("Back");
+        btnback.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnBackActionPerformed(evt);
+                btnbackActionPerformed(evt);
             }
         });
-        getContentPane().add(btnBack, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 260, -1, -1));
+        getContentPane().add(btnback, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, -1, -1));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -125,10 +126,10 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
        loadGameByDifficulty('h', DifficultyEnum.HARD); // TODO add your handling code here:
     }//GEN-LAST:event_btnHardActionPerformed
 
-    private void btnBackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBackActionPerformed
-            this.dispose();
-            new StartupFrame().setVisible(true);
-    }//GEN-LAST:event_btnBackActionPerformed
+    private void btnbackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnbackActionPerformed
+this.dispose();  
+new WelcomeFrame().setVisible(true);        // TODO add your handling code here:
+    }//GEN-LAST:event_btnbackActionPerformed
 
     /**
      * @param args the command line arguments
@@ -159,10 +160,10 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
         /* Create and display the form */
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnBack;
     private javax.swing.JButton btnEasy;
     private javax.swing.JButton btnHard;
     private javax.swing.JButton btnMedium;
+    private javax.swing.JButton btnback;
     private javax.swing.JLabel lblTitle;
     // End of variables declaration//GEN-END:variables
 }
