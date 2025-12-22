@@ -5,6 +5,7 @@ import controller.DifficultyEnum;
 import viewer.ControllerFacade;
 import controller.DifficultyEnum;
 import game.NotFoundException;
+import viewer.GameBoardFrame;
 
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
@@ -29,28 +30,31 @@ public class DifficultySelectionFrame extends javax.swing.JFrame {
     }
         private void loadGameByDifficulty(char level, DifficultyEnum difficulty) {
         try {
-            // Load game using ControllerFacade
-            int[][] board = controller.getGame(level);
-            
-            // Close this frame
-            this.dispose();
-            
-            // Show game board
-            GameBoardFrame gameFrame = new GameBoardFrame(board, controller, difficulty);
-            gameFrame.setVisible(true);
-            
-        } catch (NotFoundException e) {
-            javax.swing.JOptionPane.showMessageDialog(this,
-                "Game not found: " + e.getMessage(),
-                "Error",
-                javax.swing.JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            javax.swing.JOptionPane.showMessageDialog(this,
-                "Error loading game: " + e.getMessage(),
-                "Error",
-                javax.swing.JOptionPane.ERROR_MESSAGE);
-        }
+        // Clear the undo log before loading a new game
+        controller.clearLog();
+        
+        // Load game using ControllerFacade
+        int[][] board = controller.getGame(level);
+        
+        // Close this frame
+        this.dispose();
+        
+        // Show game board
+        GameBoardFrame gameFrame = new GameBoardFrame(board, controller, difficulty);
+        gameFrame.setVisible(true);
+        
+    } catch (NotFoundException e) {
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Game not found: " + e.getMessage(),
+            "Error",
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+    } catch (Exception e) {
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Error loading game: " + e.getMessage(),
+            "Error",
+            javax.swing.JOptionPane.ERROR_MESSAGE);
     }
+}
 
     /**
      * This method is called from within the constructor to initialize the form.
