@@ -41,7 +41,7 @@ abstract class BaseChecker implements Runnable {
             if (val < 1 || val > 9) continue; 
 
             valueLocations.putIfAbsent(val, new ArrayList<>());
-            valueLocations.get(val).add(index + 1); // Store as 1-based index for output
+            valueLocations.get(val).add(index ); // Store as 1-based index for output
         }
 
         // Check for duplicates
