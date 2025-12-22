@@ -18,6 +18,7 @@ public interface Controllable {
      *         [0] = true if there's a current/incomplete game
      *         [1] = true if all difficulty modes (easy, medium, hard) exist
      */
+    
     boolean[] getCatalog();
     
     /**
@@ -58,5 +59,6 @@ public interface Controllable {
      * @param userAction The UserAction object containing action details
      * @throws IOException If writing to the log file fails
      */
+    
     void logUserAction(UserAction userAction) throws IOException;
 }
