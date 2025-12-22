@@ -195,4 +195,19 @@ public int[] undo() throws IOException {
     GameLogger logger = new GameLogger();
     logger.clearLog();
 }
+    /**
+ * Gets the original (unsolved) puzzle for a difficulty level.
+ */
+public int[][] getOriginalGame(DifficultyEnum difficulty) throws NotFoundException {
+    try {
+        Game game = controller.getOriginalGame(difficulty);
+        return game.getBoard();
+    } catch (InvalidGameException e) {
+        throw new NotFoundException("Original game file is corrupted: " + e.getMessage());
+    }
+}
+public void saveOriginalGame(int[][] board, DifficultyEnum difficulty) throws InvalidGameException {
+    Game game = new Game(board);
+    controller.saveOriginalGame(game, difficulty);
+}
 }
